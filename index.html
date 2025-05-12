@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billboard Sprite Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/ColladaLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/PLYLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/VTKLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/TDSLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/MTLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script>
+</head>
+<body>
+    <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">🌓</button>
+    
+    <div class="container">
+        <h1>Billboard Sprite Generator</h1>
+        
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-message">Drag & Drop 3D Model Here</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="modelInput">Upload 3D Model:</label>
+                <input type="file" id="modelInput" accept=".glb,.gltf,.obj,.stl,.fbx,.dae,.ply,.vtk,.3ds,.x,.mtl">
+                <div class="format-info">Supported formats: GLB, GLTF, OBJ, STL, FBX, DAE (Collada), PLY, VTK, 3DS, X, MTL</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="scale">Model Scale:</label>
+                <input type="range" id="scale" min="0.1" max="3" step="0.1" value="1.0">
+                <div><span id="scaleValue">1.0</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="resolution">Resolution:</label>
+                <select id="resolution">
+                    <option value="64">64x64</option>
+                    <option value="128">128x128</option>
+                    <option value="256" selected>256x256</option>
+                    <option value="512">512x512</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="steps">Steps (rotations):</label>
+                <input type="number" id="steps" min="4" max="64" value="16">
+            </div>
+        </div>
+        
+        <div class="camera-controls">
+            <h3>Camera Settings</h3>
+            
+            <div class="control-group">
+                <label for="cameraDistance">Camera Distance:</label>
+                <input type="range" id="cameraDistance" min="1" max="20" step="0.1" value="5.0">
+                <div><span id="cameraDistanceValue">5.0</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="initialAngle">Initial Angle (degrees):</label>
+                <input type="range" id="initialAngle" min="0" max="359" value="0">
+                <div><span id="initialAngleValue">0</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="verticalAngle">Vertical Angle (degrees):</label>
+                <input type="range" id="verticalAngle" min="-89" max="89" value="0">
+                <div><span id="verticalAngleValue">0</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="frameFill">Frame Fill %:</label>
+                <input type="range" id="frameFill" min="10" max="100" value="80">
+                <div><span id="frameFillValue">80</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="pixelation">Sprite Sharpness:</label>
+                <input type="range" id="pixelation" min="0" max="100" value="50">
+                <div><span id="pixelationValue">50</span>% (Higher = Sharper)</div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="generateBtn">Generate Sprite</button>
+            <button id="downloadBtn" disabled>Download Sprite</button>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <div class="preview-container">
+            <div class="preview-wrapper">
+                <h3>3D Preview (mouse to rotate/zoom)</h3>
+                <div id="modelPreview"></div>
+            </div>
+            
+            <div class="preview-wrapper">
+                <h3>Sprite Preview</h3>
+                <div class="sprite-controls">
+                    <button id="prevFrame">Previous Frame</button>
+                    <button id="playPause">Play</button>
+                    <button id="nextFrame">Next Frame</button>
+                </div>
+                <canvas id="spritePreview" width="256" height="256"></canvas>
+            </div>
+        </div>
+        
+        <div class="output-container">
+            <h3>Sprite Sheet</h3>
+            <canvas id="outputCanvas" width="512" height="512"></canvas>
+        </div>
+        
+        <div class="debug-info">
+            <h3>Debug Information</h3>
+            <div id="debugOutput">No model loaded yet</div>
+        </div>
+        
+        <div class="footer">
+            <p>Made by <a href="https://x.com/0dotdmtr" target="_blank">Dmitry A. Markelov</a> | 
+            <a href="https://github.com/n02448428/billboard-gen-gui" target="_blank">GitHub Repository</a></p>
+        </div>
+    </div>
+    
+    <script src="spritegen.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
