@@ -18,145 +18,165 @@
     <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">🌓</button>
     
     <div class="container">
-        <h1>Billboard Sprite Generator</h1>
-        
-        <div class="drop-zone" id="dropZone">
-            <div class="drop-message">Drag & Drop 3D Model Here</div>
-            <div class="tooltip">Drop your 3D model file here or click to browse files</div>
+    <h1>Billboard Sprite Generator</h1>
+    
+    <div class="drop-zone" id="dropZone">
+        <div class="drop-message">Drag & Drop 3D Model Here</div>
+        <div class="tooltip">Drop your 3D model file here or click to browse files</div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="modelInput">Upload 3D Model:</label>
+            <input type="file" id="modelInput" accept=".glb,.gltf,.obj,.fbx,.dae,.mtl">
+            <div class="format-info">Supported formats: GLB, GLTF, OBJ, FBX, DAE (Collada), MTL</div>
+            <div class="tooltip">Select a 3D model file from your device</div>
         </div>
         
-        <div class="controls">
-            <div class="control-group">
-                <label for="modelInput" data-tooltip="Upload a 3D model file in one of the supported formats">Upload 3D Model:</label>
-                <input type="file" id="modelInput" accept=".glb,.gltf,.obj,.fbx,.dae,.mtl">
-                <div class="format-info">Supported formats: GLB, GLTF, OBJ, FBX, DAE (Collada), MTL</div>
-            </div>
-            
-            <div class="control-group">
-                <label for="scale" data-tooltip="Adjust the size of your model in the viewport">Model Scale:</label>
-                <input type="range" id="scale" min="0.1" max="3" step="0.1" value="1.0">
-                <div><span id="scaleValue">1.0</span></div>
-            </div>
-            
-            <div class="control-group">
-                <label for="resolution" data-tooltip="Set the pixel dimensions of each sprite in the sheet">Resolution:</label>
-                <select id="resolution">
-                    <option value="64">64x64</option>
-                    <option value="128">128x128</option>
-                    <option value="256" selected>256x256</option>
-                    <option value="512">512x512</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="steps" data-tooltip="Number of rotation angles to capture (more = smoother animation but larger file)">Steps (rotations):</label>
-                <input type="number" id="steps" min="4" max="64" value="16">
-            </div>
+        <div class="control-group">
+            <label for="scale">Model Scale:</label>
+            <input type="range" id="scale" min="0.1" max="3" step="0.1" value="1.0">
+            <div><span id="scaleValue">1.0</span></div>
+            <div class="tooltip">Adjust the size of your 3D model in the preview</div>
         </div>
         
-        <div class="camera-controls">
-            <h3>Camera Settings</h3>
-            
-            <div class="control-group">
-                <label for="cameraDistance" data-tooltip="Adjust how far the camera is from the model">Camera Distance:</label>
-                <input type="range" id="cameraDistance" min="1" max="20" step="0.1" value="5.0">
-                <div><span id="cameraDistanceValue">5.0</span></div>
-            </div>
-            
-            <div class="control-group">
-                <label for="initialAngle" data-tooltip="Set the starting horizontal angle for rotation">Initial Angle (degrees):</label>
-                <input type="range" id="initialAngle" min="0" max="359" value="0">
-                <div><span id="initialAngleValue">0</span></div>
-            </div>
-            
-            <div class="control-group">
-                <label for="verticalAngle" data-tooltip="Adjust the vertical viewing angle (0 = side view, 89 = top view)">Vertical Angle (degrees):</label>
-                <input type="range" id="verticalAngle" min="-89" max="89" value="0">
-                <div><span id="verticalAngleValue">0</span></div>
-            </div>
-            
-            <div class="control-group">
-                <label for="frameFill" data-tooltip="Control how much of the frame is filled by the model">Frame Fill %:</label>
-                <input type="range" id="frameFill" min="10" max="100" value="80">
-                <div><span id="frameFillValue">80</span></div>
-            </div>
-            
-            <div class="control-group">
-                <label for="pixelation" data-tooltip="Adjust the sharpness of the sprite (higher = sharper)">Sprite Sharpness:</label>
-                <input type="range" id="pixelation" min="0" max="100" value="50">
-                <div><span id="pixelationValue">50</span>% (Higher = Sharper)</div>
-            </div>
+        <div class="control-group">
+            <label for="resolution">Resolution:</label>
+            <select id="resolution">
+                <option value="64">64x64</option>
+                <option value="128">128x128</option>
+                <option value="256" selected>256x256</option>
+                <option value="512">512x512</option>
+            </select>
+            <div class="tooltip">Set the pixel dimensions of each sprite frame</div>
         </div>
         
-        <div class="style-controls">
-            <h3>Style Settings</h3>
-            
-            <div class="control-group">
-                <label for="outlineEnabled" data-tooltip="Add a cartoon-style outline to your model">Enable Outline:</label>
+        <div class="control-group">
+            <label for="steps">Steps (rotations):</label>
+            <input type="number" id="steps" min="4" max="64" value="16">
+            <div class="tooltip">Number of rotation angles to capture (more = smoother animation but larger file)</div>
+        </div>
+    </div>
+    
+    <div class="camera-controls">
+        <h3>Camera Settings</h3>
+        
+        <div class="control-group">
+            <label for="cameraDistance">Camera Distance:</label>
+            <input type="range" id="cameraDistance" min="1" max="20" step="0.1" value="5.0">
+            <div><span id="cameraDistanceValue">5.0</span></div>
+            <div class="tooltip">Adjust how far the camera is from the model</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="initialAngle">Initial Angle (degrees):</label>
+            <input type="range" id="initialAngle" min="0" max="359" value="0">
+            <div><span id="initialAngleValue">0</span></div>
+            <div class="tooltip">Set the starting horizontal rotation angle</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="verticalAngle">Vertical Angle (degrees):</label>
+            <input type="range" id="verticalAngle" min="-89" max="89" value="0">
+            <div><span id="verticalAngleValue">0</span></div>
+            <div class="tooltip">Adjust the vertical viewing angle (0 = side view, 90 = top view)</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="frameFill">Frame Fill %:</label>
+            <input type="range" id="frameFill" min="10" max="100" value="80">
+            <div><span id="frameFillValue">80</span></div>
+            <div class="tooltip">Control how much of each frame the model fills</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="pixelation">Sprite Sharpness:</label>
+            <input type="range" id="pixelation" min="0" max="100" value="50">
+            <div><span id="pixelationValue">50</span>% (Higher = Sharper)</div>
+            <div class="tooltip">Adjust the pixelation effect (lower = more pixelated)</div>
+        </div>
+    </div>
+    
+    <div class="style-controls">
+        <h3>Style Settings</h3>
+        
+        <div class="control-group">
+            <label for="outlineEnabled">Outline:</label>
+            <div class="toggle-container">
                 <input type="checkbox" id="outlineEnabled">
+                <label for="outlineEnabled" class="toggle-label"></label>
             </div>
-            
-            <div class="control-group">
-                <label for="outlineThickness" data-tooltip="Control the thickness of the outline">Outline Thickness:</label>
-                <input type="range" id="outlineThickness" min="1" max="10" value="2" disabled>
-                <div><span id="outlineThicknessValue">2</span>px</div>
-            </div>
-            
-            <div class="control-group">
-                <label for="outlineColor" data-tooltip="Choose the color of the outline">Outline Color:</label>
-                <input type="color" id="outlineColor" value="#000000" disabled>
-            </div>
-            
-            <div class="control-group">
-                <label for="cellShadingEnabled" data-tooltip="Apply cell-shading (toon shading) to your model">Enable Cell Shading:</label>
+            <div class="tooltip">Add cartoon-style outlines to your model</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="outlineThickness">Outline Thickness:</label>
+            <input type="range" id="outlineThickness" min="1" max="5" step="0.5" value="1.5">
+            <div><span id="outlineThicknessValue">1.5</span></div>
+            <div class="tooltip">Adjust the thickness of the outline</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="outlineColor">Outline Color:</label>
+            <input type="color" id="outlineColor" value="#000000">
+            <div class="tooltip">Choose the color of the outline</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="cellShadingEnabled">Cell Shading:</label>
+            <div class="toggle-container">
                 <input type="checkbox" id="cellShadingEnabled">
+                <label for="cellShadingEnabled" class="toggle-label"></label>
             </div>
-            
-            <div class="control-group">
-                <label for="shadingLevels" data-tooltip="Number of distinct shading levels (fewer = more cartoon-like)">Shading Levels:</label>
-                <input type="range" id="shadingLevels" min="2" max="10" value="3" disabled>
-                <div><span id="shadingLevelsValue">3</span></div>
+            <div class="tooltip">Apply cartoon-style cell shading to your model</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="shadingLevels">Shading Levels:</label>
+            <input type="range" id="shadingLevels" min="2" max="5" step="1" value="3">
+            <div><span id="shadingLevelsValue">3</span></div>
+            <div class="tooltip">Number of distinct shading levels (fewer = more cartoon-like)</div>
+        </div>
+    </div>
+    
+    <div class="button-group">
+        <button id="generateBtn">Generate Sprite</button>
+        <button id="downloadBtn" disabled>Download Sprite</button>
+    </div>
+    
+    <div id="statusMessage" class="status-message"></div>
+    
+    <div class="preview-container">
+        <div class="preview-wrapper">
+            <h3>3D Preview (mouse to rotate/zoom)</h3>
+            <div id="modelPreview"></div>
+        </div>
+        
+        <div class="preview-wrapper">
+            <h3>Sprite Preview</h3>
+            <div class="sprite-controls">
+                <button id="prevFrame">Previous Frame</button>
+                <button id="playPause">Play</button>
+                <button id="nextFrame">Next Frame</button>
             </div>
+            <canvas id="spritePreview" width="256" height="256"></canvas>
         </div>
-        
-        <div class="button-group">
-            <button id="generateBtn" data-tooltip="Generate a sprite sheet from the current model and settings">Generate Sprite</button>
-            <button id="downloadBtn" disabled data-tooltip="Download the generated sprite sheet as a PNG image">Download Sprite</button>
-        </div>
-        
-        <div id="statusMessage" class="status-message"></div>
-        
-        <div class="preview-container">
-            <div class="preview-wrapper">
-                <h3>3D Preview (mouse to rotate/zoom)</h3>
-                <div id="modelPreview"></div>
-            </div>
-            
-            <div class="preview-wrapper">
-                <h3>Sprite Preview</h3>
-                <div class="sprite-controls">
-                    <button id="prevFrame" data-tooltip="View the previous frame in the animation">Previous Frame</button>
-                    <button id="playPause" data-tooltip="Play or pause the animation preview">Play</button>
-                    <button id="nextFrame" data-tooltip="View the next frame in the animation">Next Frame</button>
-                </div>
-                <canvas id="spritePreview" width="256" height="256"></canvas>
-            </div>
-        </div>
-        
-        <div class="output-container">
-            <h3>Sprite Sheet</h3>
-            <canvas id="outputCanvas" width="512" height="512"></canvas>
-        </div>
-        
-        <div class="debug-info">
-            <h3>Debug Information</h3>
-            <div id="debugOutput">No model loaded yet</div>
-        </div>
-        
-        <div class="footer">
-            <p>Made by <a href="https://x.com/0dotdmtr" target="_blank">Dmitry A. Markelov</a> | 
-            <a href="https://github.com/n02448428/billboard-gen-gui" target="_blank">GitHub Repository</a></p>
-        </div>
+    </div>
+    
+    <div class="output-container">
+        <h3>Sprite Sheet</h3>
+        <canvas id="outputCanvas" width="512" height="512"></canvas>
+    </div>
+    
+    <div class="debug-info">
+        <h3>Debug Information</h3>
+        <div id="debugOutput">No model loaded yet</div>
+    </div>
+    
+    <div class="footer">
+        <p>Made by <a href="https://x.com/0dotdmtr" target="_blank">Dmitry A. Markelov</a> | 
+        <a href="https://github.com/n02448428/billboard-gen-gui" target="_blank">GitHub Repository</a></p>
+    </div>
     </div>
     
     <script src="spritegen.js"></script>
