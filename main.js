@@ -12,12 +12,21 @@ let verticalAngle = 0;
 let frameFillPercentage = 80; // Default to 80% fill
 let pixelationLevel = 50; // Default pixelation level
 
+// Style settings
+let outlineEnabled = false;
+let outlineThickness = 2;
+let outlineColor = "#000000";
+let cellShadingEnabled = false;
+let shadingLevels = 3;
+
 // DOM Elements
 let modelInput, scaleSlider, scaleValue, resolutionSelect, stepsInput;
 let generateBtn, downloadBtn, statusMessage, modelPreviewContainer;
 let spritePreview, outputCanvas, prevFrameBtn, playPauseBtn, nextFrameBtn;
 let cameraDistanceSlider, initialAngleSlider, verticalAngleSlider;
 let frameFillSlider, frameFillValue, pixelationSlider, pixelationValue;
+let outlineEnabledCheckbox, outlineThicknessSlider, outlineThicknessValue, outlineColorInput;
+let cellShadingEnabledCheckbox, shadingLevelsSlider, shadingLevelsValue;
 let dropZone, themeToggle;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize theme
     initializeTheme();
+    
+    // Initialize tooltips
+    initializeTooltips();
     
     // Add a test cube to verify rendering is working
     addTestCube();
@@ -65,6 +77,13 @@ function initializeDOMElements() {
     frameFillValue = document.getElementById('frameFillValue');
     pixelationSlider = document.getElementById('pixelation');
     pixelationValue = document.getElementById('pixelationValue');
+    outlineEnabledCheckbox = document.getElementById('outlineEnabled');
+    outlineThicknessSlider = document.getElementById('outlineThickness');
+    outlineThicknessValue = document.getElementById('outlineThicknessValue');
+    outlineColorInput = document.getElementById('outlineColor');
+    cellShadingEnabledCheckbox = document.getElementById('cellShadingEnabled');
+    shadingLevelsSlider = document.getElementById('shadingLevels');
+    shadingLevelsValue = document.getElementById('shadingLevelsValue');
     dropZone = document.getElementById('dropZone');
     themeToggle = document.getElementById('themeToggle');
 }
@@ -107,9 +126,207 @@ function setupEventListeners() {
         }
     }
     
+    if (outlineEnabledCheckbox) {
+        outlineEnabledCheckbox.addEventListener('change', toggleOutline);
+    }
+    
+    if (outlineThicknessSlider) {
+        outlineThicknessSlider.addEventListener('input', updateOutlineThickness);
+        if (outlineThicknessValue) {
+            outlineThicknessValue.textContent = outlineThicknessSlider.value;
+        }
+    }
+    
+    if (outlineColorInput) {
+        outlineColorInput.addEventListener('input', updateOutlineColor);
+    }
+    
+    if (cellShadingEnabledCheckbox) {
+        cellShadingEnabledCheckbox.addEventListener('change', toggleCellShading);
+    }
+    
+    if (shadingLevelsSlider) {
+        shadingLevelsSlider.addEventListener('input', updateShadingLevels);
+        if (shadingLevelsValue) {
+            shadingLevelsValue.textContent = shadingLevelsSlider.value;
+        }
+    }
+    
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+}
+
+function initializeTooltips() {
+    // Add tooltip functionality to all elements with data-tooltip attribute
+    const tooltipElements = document.querySelectorAll('[data-tooltip]');
+    
+    tooltipElements.forEach(element => {
+        const tooltipText = element.getAttribute('data-tooltip');
+        
+        element.addEventListener('mouseenter', (e) => {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-popup';
+            tooltip.textContent = tooltipText;
+            
+            // Position the tooltip
+            document.body.appendChild(tooltip);
+            
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            
+            // Position above the element
+            let top = rect.top - tooltipRect.height - 10;
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            
+            // Make sure tooltip stays within viewport
+            if (top < 10) top = rect.bottom + 10; // Show below instead
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            
+            tooltip.style.top = `${top + window.scrollY}px`;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.opacity = '1';
+            
+            element.tooltip = tooltip;
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            if (element.tooltip) {
+                element.tooltip.remove();
+                element.tooltip = null;
+            }
+        });
+    });
+}
+
+function toggleOutline() {
+    outlineEnabled = outlineEnabledCheckbox.checked;
+    outlineThicknessSlider.disabled = !outlineEnabled;
+    outlineColorInput.disabled = !outlineEnabled;
+    
+    if (model) {
+        applyStyleSettings();
+    }
+}
+
+function updateOutlineThickness() {
+    outlineThickness = parseInt(outlineThicknessSlider.value);
+    outlineThicknessValue.textContent = outlineThickness;
+    
+    if (model && outlineEnabled) {
+        applyStyleSettings();
+    }
+}
+
+function updateOutlineColor() {
+    outlineColor = outlineColorInput.value;
+    
+    if (model && outlineEnabled) {
+        applyStyleSettings();
+    }
+}
+
+function toggleCellShading() {
+    cellShadingEnabled = cellShadingEnabledCheckbox.checked;
+    shadingLevelsSlider.disabled = !cellShadingEnabled;
+    
+    if (model) {
+        applyStyleSettings();
+    }
+}
+
+function updateShadingLevels() {
+    shadingLevels = parseInt(shadingLevelsSlider.value);
+    shadingLevelsValue.textContent = shadingLevels;
+    
+    if (model && cellShadingEnabled) {
+        applyStyleSettings();
+    }
+}
+
+function applyStyleSettings() {
+    // Remove any existing outline effect
+    scene.children.forEach(child => {
+        if (child.isOutlineEffect) {
+            scene.remove(child);
+        }
+    });
+    
+    // Apply cell shading to all meshes
+    model.traverse(child => {
+        if (child.isMesh) {
+            // Reset material to standard if it was previously cell-shaded
+            if (child.originalMaterial) {
+                child.material = child.originalMaterial;
+                delete child.originalMaterial;
+            }
+            
+            if (cellShadingEnabled) {
+                // Store original material
+                if (!child.originalMaterial) {
+                    child.originalMaterial = child.material;
+                }
+                
+                // Create toon material
+                const toonMaterial = new THREE.MeshToonMaterial({
+                    color: child.originalMaterial.color || 0x808080,
+                    map: child.originalMaterial.map || null,
+                    gradientMap: createToonGradientTexture(shadingLevels)
+                });
+                
+                child.material = toonMaterial;
+            }
+        }
+    });
+    
+    // Apply outline effect if enabled
+    if (outlineEnabled) {
+        model.traverse(child => {
+            if (child.isMesh) {
+                const outlineMaterial = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(outlineColor),
+                    side: THREE.BackSide
+                });
+                
+                const outlineMesh = new THREE.Mesh(child.geometry, outlineMaterial);
+                outlineMesh.position.copy(child.position);
+                outlineMesh.rotation.copy(child.rotation);
+                outlineMesh.scale.copy(child.scale).multiplyScalar(1 + (outlineThickness / 50));
+                outlineMesh.isOutlineEffect = true;
+                
+                // Get world position for the outline
+                child.updateWorldMatrix(true, false);
+                outlineMesh.matrix.copy(child.matrixWorld);
+                outlineMesh.matrixWorld.copy(child.matrixWorld);
+                
+                scene.add(outlineMesh);
+            }
+        });
+    }
+    
+    // Force render update
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+function createToonGradientTexture(levels) {
+    const data = new Uint8Array(levels * 4);
+    
+    for (let i = 0; i < levels; i++) {
+        const val = Math.round((i / (levels - 1)) * 255);
+        data[i * 4] = val;
+        data[i * 4 + 1] = val;
+        data[i * 4 + 2] = val;
+        data[i * 4 + 3] = 255;
+    }
+    
+    const texture = new THREE.DataTexture(data, levels, 1, THREE.RGBAFormat);
+    texture.needsUpdate = true;
+    return texture;
 }
 
 function initializeTheme() {
@@ -219,7 +436,7 @@ function setupDragAndDrop() {
 }
 
 function isSupportedModelFile(fileName) {
-    const supportedExtensions = ['.glb', '.gltf', '.obj', '.stl', '.fbx', '.dae', '.ply', '.vtk', '.3ds', '.x', '.mtl'];
+    const supportedExtensions = ['.glb', '.gltf', '.obj', '.fbx', '.dae', '.mtl'];
     return supportedExtensions.some(ext => fileName.endsWith(ext));
 }
 
@@ -283,14 +500,14 @@ function initPreview() {
             new THREE.Color(0x121212) : new THREE.Color(0xf0f0f0);
         
         // Add lights with correct color values
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffff, 0.7);
         scene.add(ambientLight);
         
-        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        const directionalLight1 = new THREE.DirectionalLight(0xffff, 0.8);
         directionalLight1.position.set(1, 1, 1);
         scene.add(directionalLight1);
         
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        const directionalLight2 = new THREE.DirectionalLight(0xffff, 0.5);
         directionalLight2.position.set(-1, 0.5, -1);
         scene.add(directionalLight2);
         
@@ -410,20 +627,10 @@ function loadModel(file) {
                 loadGLTFModel(fileURL, resolve, reject);
             } else if (fileName.endsWith('.obj')) {
                 loadOBJModel(fileURL, resolve, reject);
-            } else if (fileName.endsWith('.stl')) {
-                loadSTLModel(fileURL, resolve, reject);
             } else if (fileName.endsWith('.fbx')) {
                 loadFBXModel(fileURL, resolve, reject);
             } else if (fileName.endsWith('.dae')) {
                 loadColladaModel(fileURL, resolve, reject);
-            } else if (fileName.endsWith('.ply')) {
-                loadPLYModel(fileURL, resolve, reject);
-            } else if (fileName.endsWith('.vtk')) {
-                loadVTKModel(fileURL, resolve, reject);
-            } else if (fileName.endsWith('.3ds')) {
-                load3DSModel(fileURL, resolve, reject);
-            } else if (fileName.endsWith('.x')) {
-                loadXModel(fileURL, resolve, reject);
             } else if (fileName.endsWith('.mtl')) {
                 loadMTLModel(fileURL, resolve, reject);
             } else {
@@ -519,56 +726,6 @@ function loadOBJModel(fileURL, resolve, reject) {
     );
 }
 
-function loadSTLModel(fileURL, resolve, reject) {
-    console.log("Loading STL model from:", fileURL);
-    
-    // Make sure STLLoader is available
-    if (typeof THREE.STLLoader === 'undefined') {
-        reject(new Error('STLLoader is not available. Please refresh the page.'));
-        return;
-    }
-    
-    const loader = new THREE.STLLoader();
-    loader.load(
-        fileURL,
-        (geometry) => {
-            console.log("STL loaded successfully:", geometry);
-            // STL files only contain geometry, so we need to create a mesh with a material
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x808080,
-                side: THREE.DoubleSide
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            
-            // Create a group to hold the mesh
-            model = new THREE.Group();
-            model.add(mesh);
-            
-            if (!model) {
-                console.error("Model is null or undefined after loading");
-                reject(new Error('Model failed to load correctly'));
-                return;
-            }
-            
-            // Update debug output
-            const debugOutput = document.getElementById('debugOutput');
-            debugOutput.innerHTML = 'STL model loaded successfully\n';
-            
-            // Process the model
-            processLoadedModel(model);
-            resolve(model);
-        },
-        (xhr) => {
-            const percent = (xhr.loaded / xhr.total) * 100;
-            showStatus(`Loading model: ${Math.round(percent)}%`, false);
-        },
-        (error) => {
-            console.error("STL loader error:", error);
-            reject(new Error(`STL loader error: ${error.message}`));
-        }
-    );
-}
-
 function loadFBXModel(fileURL, resolve, reject) {
     console.log("Loading FBX model from:", fileURL);
     
@@ -650,154 +807,6 @@ function loadColladaModel(fileURL, resolve, reject) {
             reject(new Error(`Collada loader error: ${error.message}`));
         }
     );
-}
-
-function loadPLYModel(fileURL, resolve, reject) {
-    console.log("Loading PLY model from:", fileURL);
-    
-    // Make sure PLYLoader is available
-    if (typeof THREE.PLYLoader === 'undefined') {
-        reject(new Error('PLYLoader is not available. Please refresh the page.'));
-        return;
-    }
-    
-    const loader = new THREE.PLYLoader();
-    loader.load(
-        fileURL,
-        (geometry) => {
-            console.log("PLY loaded successfully:", geometry);
-            // PLY files only contain geometry, so we need to create a mesh with a material
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x808080,
-                side: THREE.DoubleSide
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            
-            // Create a group to hold the mesh
-            model = new THREE.Group();
-            model.add(mesh);
-            
-            if (!model) {
-                console.error("Model is null or undefined after loading");
-                reject(new Error('Model failed to load correctly'));
-                return;
-            }
-            
-            // Update debug output
-            const debugOutput = document.getElementById('debugOutput');
-            debugOutput.innerHTML = 'PLY model loaded successfully\n';
-            
-            // Process the model
-            processLoadedModel(model);
-            resolve(model);
-        },
-        (xhr) => {
-            const percent = (xhr.loaded / xhr.total) * 100;
-            showStatus(`Loading model: ${Math.round(percent)}%`, false);
-        },
-        (error) => {
-            console.error("PLY loader error:", error);
-            reject(new Error(`PLY loader error: ${error.message}`));
-        }
-    );
-}
-
-function loadVTKModel(fileURL, resolve, reject) {
-    console.log("Loading VTK model from:", fileURL);
-    
-    // Make sure VTKLoader is available
-    if (typeof THREE.VTKLoader === 'undefined') {
-        reject(new Error('VTKLoader is not available. Please refresh the page.'));
-        return;
-    }
-    
-    const loader = new THREE.VTKLoader();
-    loader.load(
-        fileURL,
-        (geometry) => {
-            console.log("VTK loaded successfully:", geometry);
-            // VTK files only contain geometry, so we need to create a mesh with a material
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x808080,
-                side: THREE.DoubleSide
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            
-            // Create a group to hold the mesh
-            model = new THREE.Group();
-            model.add(mesh);
-            
-            if (!model) {
-                console.error("Model is null or undefined after loading");
-                reject(new Error('Model failed to load correctly'));
-                return;
-            }
-            
-            // Update debug output
-            const debugOutput = document.getElementById('debugOutput');
-            debugOutput.innerHTML = 'VTK model loaded successfully\n';
-            
-            // Process the model
-            processLoadedModel(model);
-            resolve(model);
-        },
-        (xhr) => {
-            const percent = (xhr.loaded / xhr.total) * 100;
-            showStatus(`Loading model: ${Math.round(percent)}%`, false);
-        },
-        (error) => {
-            console.error("VTK loader error:", error);
-            reject(new Error(`VTK loader error: ${error.message}`));
-        }
-    );
-}
-
-function load3DSModel(fileURL, resolve, reject) {
-    console.log("Loading 3DS model from:", fileURL);
-    
-    // Make sure TDSLoader is available
-    if (typeof THREE.TDSLoader === 'undefined') {
-        reject(new Error('TDSLoader is not available. Please refresh the page.'));
-        return;
-    }
-    
-    const loader = new THREE.TDSLoader();
-    loader.load(
-        fileURL,
-        (object) => {
-            console.log("3DS loaded successfully:", object);
-            model = object;
-            
-            if (!model) {
-                console.error("Model is null or undefined after loading");
-                reject(new Error('Model failed to load correctly'));
-                return;
-            }
-            
-            // Update debug output
-            const debugOutput = document.getElementById('debugOutput');
-            debugOutput.innerHTML = '3DS model loaded successfully\n';
-            
-            // Process the model
-            processLoadedModel(model);
-            resolve(model);
-        },
-        (xhr) => {
-            const percent = (xhr.loaded / xhr.total) * 100;
-            showStatus(`Loading model: ${Math.round(percent)}%`, false);
-        },
-        (error) => {
-            console.error("3DS loader error:", error);
-            reject(new Error(`3DS loader error: ${error.message}`));
-        }
-    );
-}
-
-function loadXModel(fileURL, resolve, reject) {
-    // Note: THREE.js doesn't have a built-in XLoader, so we'll create a placeholder
-    // In a real application, you would need to implement or find an XLoader
-    console.log("Loading X model from:", fileURL);
-    reject(new Error('DirectX (.x) loader is not currently implemented. Please use another format.'));
 }
 
 function loadMTLModel(fileURL, resolve, reject) {
@@ -911,6 +920,11 @@ function processLoadedModel(model) {
     
     // Center and scale the model
     centerAndScaleModel(realMeshes);
+    
+    // Apply style settings if enabled
+    if (outlineEnabled || cellShadingEnabled) {
+        applyStyleSettings();
+    }
     
     // Force render update
     renderer.render(scene, camera);
@@ -1154,46 +1168,61 @@ function handleGenerateSprite() {
             }
         });
         
-        generateSpriteSheet(scene, camera, model, resolution, steps, initialAngle, verticalAngle, cameraDistance, frameFillPercentage)
-            .then(result => {
-                frames = result.frames;
-                outputCanvas.width = result.spriteSheet.width;
-                outputCanvas.height = result.spriteSheet.height;
-                
-                const ctx = outputCanvas.getContext('2d');
-                ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-                ctx.drawImage(result.spriteSheet, 0, 0);
-                
-                downloadBtn.disabled = false;
-                
-                if (frames.length > 0) {
-                    showFramePreview(0);
+        generateSpriteSheet(
+            scene, 
+            camera, 
+            model, 
+            resolution, 
+            steps, 
+            initialAngle, 
+            verticalAngle, 
+            cameraDistance, 
+            frameFillPercentage,
+            outlineEnabled,
+            outlineThickness,
+            outlineColor,
+            cellShadingEnabled,
+            shadingLevels
+        )
+        .then(result => {
+            frames = result.frames;
+            outputCanvas.width = result.spriteSheet.width;
+            outputCanvas.height = result.spriteSheet.height;
+            
+            const ctx = outputCanvas.getContext('2d');
+            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+            ctx.drawImage(result.spriteSheet, 0, 0);
+            
+            downloadBtn.disabled = false;
+            
+            if (frames.length > 0) {
+                showFramePreview(0);
+            }
+            
+            showStatus('Sprite sheet generated successfully!', false);
+            
+            // Apply pixelation
+            updatePixelation();
+        })
+        .catch(error => {
+            showStatus(`Error generating sprite sheet: ${error.message}`, true);
+            console.error("Sprite generation error:", error);
+        })
+        .finally(() => {
+            // Restore visibility of helpers
+            gridHelper.visible = gridVisible;
+            axesHelper.visible = true;
+            
+            // Show box helpers again
+            scene.children.forEach(child => {
+                if (child instanceof THREE.BoxHelper) {
+                    child.visible = true;
                 }
-                
-                showStatus('Sprite sheet generated successfully!', false);
-                
-                // Apply pixelation
-                updatePixelation();
-            })
-            .catch(error => {
-                showStatus(`Error generating sprite sheet: ${error.message}`, true);
-                console.error("Sprite generation error:", error);
-            })
-            .finally(() => {
-                // Restore visibility of helpers
-                gridHelper.visible = gridVisible;
-                axesHelper.visible = true;
-                
-                // Show box helpers again
-                scene.children.forEach(child => {
-                    if (child instanceof THREE.BoxHelper) {
-                        child.visible = true;
-                    }
-                });
-                
-                generateBtn.disabled = false;
-                renderer.render(scene, camera);
             });
+            
+            generateBtn.disabled = false;
+            renderer.render(scene, camera);
+        });
     } catch (error) {
         showStatus(`Error: ${error.message}`, true);
         console.error("Error in handleGenerateSprite:", error);
@@ -1223,7 +1252,7 @@ function showFramePreview(index) {
     if (currentFrame >= frames.length) currentFrame = 0;
     
     const ctx = spritePreview.getContext('2d');
-ctx.clearRect(0, 0, spritePreview.width, spritePreview.height);
+    ctx.clearRect(0, 0, spritePreview.width, spritePreview.height);
     ctx.drawImage(frames[currentFrame], 0, 0, spritePreview.width, spritePreview.height);
 }
 
