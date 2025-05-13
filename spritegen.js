@@ -12,7 +12,7 @@
  * @param {Object} styleSettings - Style settings for the sprite (outline, cell-shading)
  * @returns {Promise} - A promise that resolves with the sprite sheet and frames
  */
-function generateSpriteSheet(scene, mainCamera, model, resolution, steps, initialAngle = 0, verticalAngle = 0, cameraDistance = 5, frameFillPercentage = 80, styleSettings = {}) {
+function generateSpriteSheet(scene, mainCamera, model, resolution, steps, initialAngle = 0, verticalAngle = 0, cameraDistance = 5, frameFillPercentage = 80) {
     return new Promise((resolve, reject) => {
     try {
     console.log("Starting sprite sheet generation...");
@@ -78,15 +78,6 @@ function generateSpriteSheet(scene, mainCamera, model, resolution, steps, initia
     // Reset model position and rotation
     modelClone.position.set(0, 0, 0);
     modelClone.rotation.set(0, 0, 0);
-    
-    // Apply style settings to the cloned model
-    if (styleSettings.outlineEnabled) {
-        applyOutlineToModel(modelClone, styleSettings.outlineThickness, styleSettings.outlineColor, spriteScene);
-    }
-    
-    if (styleSettings.cellShadingEnabled) {
-        applyCellShadingToModel(modelClone, styleSettings.shadingLevels);
-    }
     
     // Calculate model size and center
     const box = new THREE.Box3().setFromObject(modelClone);
@@ -308,127 +299,6 @@ function generateSpriteSheet(scene, mainCamera, model, resolution, steps, initia
     reject(new Error(`Sprite generation failed: ${error.message}`));
     }
     });
-}
-
-/**
- * Apply outline effect to a model
- * @param {Object} model - The Three.js model object
- * @param {number} thickness - Outline thickness
- * @param {string} color - Outline color in hex format
- * @param {Object} scene - The scene to add outline meshes to
- */
-function applyOutlineToModel(model, thickness, color, scene) {
-    // Find all meshes in the model
-    const meshes = [];
-    model.traverse(child => {
-        if (child.isMesh && child.geometry) {
-            meshes.push(child);
-        }
-    });
-    
-    // Create outline effect for each mesh
-    meshes.forEach(mesh => {
-        const outlineMaterial = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(color),
-            side: THREE.BackSide
-        });
-        
-        const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial);
-        outlineMesh.position.copy(mesh.position);
-        outlineMesh.rotation.copy(mesh.rotation);
-        outlineMesh.scale.copy(mesh.scale).multiplyScalar(1 + thickness * 0.05);
-        outlineMesh.isOutlineEffect = true;
-        
-        // Apply the world matrix of the original mesh
-        outlineMesh.matrix.copy(mesh.matrixWorld);
-        outlineMesh.matrixWorld.copy(mesh.matrixWorld);
-        outlineMesh.matrixAutoUpdate = false;
-        
-        scene.add(outlineMesh);
-    });
-}
-
-/**
- * Apply cell shading effect to a model
- * @param {Object} model - The Three.js model object
- * @param {number} levels - Number of shading levels
- */
-function applyCellShadingToModel(model, levels) {
-    // Create a toon gradient texture
-    const gradientTexture = createToonGradientTexture(levels);
-    
-    // Update materials for all meshes in the model
-    model.traverse(child => {
-        if (child.isMesh && child.material) {
-            // Store original material if not already stored
-            if (!child.originalMaterial) {
-                if (Array.isArray(child.material)) {
-                    child.originalMaterial = child.material.map(m => m.clone());
-                } else {
-                    child.originalMaterial = child.material.clone();
-                }
-            }
-            
-            // Apply cell shading material
-            if (Array.isArray(child.material)) {
-                child.material.forEach((mat, index) => {
-                    applyCellShadingToMaterial(mat, gradientTexture);
-                });
-            } else {
-                applyCellShadingToMaterial(child.material, gradientTexture);
-            }
-        }
-    });
-}
-
-/**
- * Apply cell shading to a material
- * @param {Object} material - The Three.js material
- * @param {Object} gradientTexture - The gradient texture for toon shading
- */
-function applyCellShadingToMaterial(material, gradientTexture) {
-    // Create a toon shader material
-    const newMaterial = new THREE.MeshToonMaterial({
-        color: material.color ? material.color.clone() : new THREE.Color(0x808080),
-        map: material.map,
-        gradientMap: gradientTexture
-    });
-    
-    // Copy properties from original material
-    if (material.transparent !== undefined) newMaterial.transparent = material.transparent;
-    if (material.opacity !== undefined) newMaterial.opacity = material.opacity;
-    if (material.side !== undefined) newMaterial.side = material.side;
-    
-    // Replace the material properties
-    Object.assign(material, newMaterial);
-}
-
-/**
- * Create a gradient texture for toon shading
- * @param {number} levels - Number of shading levels
- * @returns {Object} - The gradient texture
- */
-function createToonGradientTexture(levels) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 1;
-    
-    const context = canvas.getContext('2d');
-    context.fillStyle = 'white';
-    context.fillRect(0, 0, 256, 1);
-    
-    for (let i = 0; i < levels; i++) {
-        const value = Math.floor(255 * (i / (levels - 1)));
-        const position = Math.floor(256 * (i / (levels - 1)));
-        context.fillStyle = `rgb(${value}, ${value}, ${value})`;
-        context.fillRect(position, 0, Math.ceil(256 / levels), 1);
-    }
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.NearestFilter;
-    texture.magFilter = THREE.NearestFilter;
-    
-    return texture;
 }
 
 /**
