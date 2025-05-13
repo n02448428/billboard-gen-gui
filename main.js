@@ -14,7 +14,7 @@ let pixelationLevel = 50; // Default pixelation level
 
 // Style settings
 let outlineEnabled = false;
-let outlineThickness = 2;
+let outlineThickness = 1.5;
 let outlineColor = "#000000";
 let cellShadingEnabled = false;
 let shadingLevels = 3;
@@ -25,7 +25,7 @@ let generateBtn, downloadBtn, statusMessage, modelPreviewContainer;
 let spritePreview, outputCanvas, prevFrameBtn, playPauseBtn, nextFrameBtn;
 let cameraDistanceSlider, initialAngleSlider, verticalAngleSlider;
 let frameFillSlider, frameFillValue, pixelationSlider, pixelationValue;
-let outlineEnabledCheckbox, outlineThicknessSlider, outlineThicknessValue, outlineColorInput;
+let outlineEnabledCheckbox, outlineThicknessSlider, outlineThicknessValue, outlineColorPicker;
 let cellShadingEnabledCheckbox, shadingLevelsSlider, shadingLevelsValue;
 let dropZone, themeToggle;
 
@@ -47,9 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize theme
     initializeTheme();
-    
-    // Initialize tooltips
-    initializeTooltips();
     
     // Add a test cube to verify rendering is working
     addTestCube();
@@ -80,7 +77,7 @@ function initializeDOMElements() {
     outlineEnabledCheckbox = document.getElementById('outlineEnabled');
     outlineThicknessSlider = document.getElementById('outlineThickness');
     outlineThicknessValue = document.getElementById('outlineThicknessValue');
-    outlineColorInput = document.getElementById('outlineColor');
+    outlineColorPicker = document.getElementById('outlineColor');
     cellShadingEnabledCheckbox = document.getElementById('cellShadingEnabled');
     shadingLevelsSlider = document.getElementById('shadingLevels');
     shadingLevelsValue = document.getElementById('shadingLevelsValue');
@@ -127,26 +124,26 @@ function setupEventListeners() {
     }
     
     if (outlineEnabledCheckbox) {
-        outlineEnabledCheckbox.addEventListener('change', toggleOutline);
+        outlineEnabledCheckbox.addEventListener('change', updateOutlineSettings);
     }
     
     if (outlineThicknessSlider) {
-        outlineThicknessSlider.addEventListener('input', updateOutlineThickness);
+        outlineThicknessSlider.addEventListener('input', updateOutlineSettings);
         if (outlineThicknessValue) {
             outlineThicknessValue.textContent = outlineThicknessSlider.value;
         }
     }
     
-    if (outlineColorInput) {
-        outlineColorInput.addEventListener('input', updateOutlineColor);
+    if (outlineColorPicker) {
+        outlineColorPicker.addEventListener('input', updateOutlineSettings);
     }
     
     if (cellShadingEnabledCheckbox) {
-        cellShadingEnabledCheckbox.addEventListener('change', toggleCellShading);
+        cellShadingEnabledCheckbox.addEventListener('change', updateCellShadingSettings);
     }
     
     if (shadingLevelsSlider) {
-        shadingLevelsSlider.addEventListener('input', updateShadingLevels);
+        shadingLevelsSlider.addEventListener('input', updateCellShadingSettings);
         if (shadingLevelsValue) {
             shadingLevelsValue.textContent = shadingLevelsSlider.value;
         }
@@ -157,97 +154,36 @@ function setupEventListeners() {
     }
 }
 
-function initializeTooltips() {
-    // Add tooltip functionality to all elements with data-tooltip attribute
-    const tooltipElements = document.querySelectorAll('[data-tooltip]');
-    
-    tooltipElements.forEach(element => {
-        const tooltipText = element.getAttribute('data-tooltip');
-        
-        element.addEventListener('mouseenter', (e) => {
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip-popup';
-            tooltip.textContent = tooltipText;
-            
-            // Position the tooltip
-            document.body.appendChild(tooltip);
-            
-            const rect = element.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
-            
-            // Position above the element
-            let top = rect.top - tooltipRect.height - 10;
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            
-            // Make sure tooltip stays within viewport
-            if (top < 10) top = rect.bottom + 10; // Show below instead
-            if (left < 10) left = 10;
-            if (left + tooltipRect.width > window.innerWidth - 10) {
-                left = window.innerWidth - tooltipRect.width - 10;
-            }
-            
-            tooltip.style.top = `${top + window.scrollY}px`;
-            tooltip.style.left = `${left}px`;
-            tooltip.style.opacity = '1';
-            
-            element.tooltip = tooltip;
-        });
-        
-        element.addEventListener('mouseleave', () => {
-            if (element.tooltip) {
-                element.tooltip.remove();
-                element.tooltip = null;
-            }
-        });
-    });
-}
-
-function toggleOutline() {
+function updateOutlineSettings() {
     outlineEnabled = outlineEnabledCheckbox.checked;
-    outlineThicknessSlider.disabled = !outlineEnabled;
-    outlineColorInput.disabled = !outlineEnabled;
+    outlineThickness = parseFloat(outlineThicknessSlider.value);
+    outlineColor = outlineColorPicker.value;
     
+    if (outlineThicknessValue) {
+        outlineThicknessValue.textContent = outlineThickness;
+    }
+    
+    // Update the model with new outline settings
     if (model) {
-        applyStyleSettings();
+        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
     }
 }
 
-function updateOutlineThickness() {
-    outlineThickness = parseInt(outlineThicknessSlider.value);
-    outlineThicknessValue.textContent = outlineThickness;
-    
-    if (model && outlineEnabled) {
-        applyStyleSettings();
-    }
-}
-
-function updateOutlineColor() {
-    outlineColor = outlineColorInput.value;
-    
-    if (model && outlineEnabled) {
-        applyStyleSettings();
-    }
-}
-
-function toggleCellShading() {
+function updateCellShadingSettings() {
     cellShadingEnabled = cellShadingEnabledCheckbox.checked;
-    shadingLevelsSlider.disabled = !cellShadingEnabled;
-    
-    if (model) {
-        applyStyleSettings();
-    }
-}
-
-function updateShadingLevels() {
     shadingLevels = parseInt(shadingLevelsSlider.value);
-    shadingLevelsValue.textContent = shadingLevels;
     
-    if (model && cellShadingEnabled) {
-        applyStyleSettings();
+    if (shadingLevelsValue) {
+        shadingLevelsValue.textContent = shadingLevels;
+    }
+    
+    // Update the model with new cell shading settings
+    if (model) {
+        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
     }
 }
 
-function applyStyleSettings() {
+function applyOutlineEffect(model, enabled, thickness, color) {
     // Remove any existing outline effect
     scene.children.forEach(child => {
         if (child.isOutlineEffect) {
@@ -255,57 +191,36 @@ function applyStyleSettings() {
         }
     });
     
-    // Apply cell shading to all meshes
+    if (!enabled) return;
+    
+    // Find all meshes in the model
+    const meshes = [];
     model.traverse(child => {
-        if (child.isMesh) {
-            // Reset material to standard if it was previously cell-shaded
-            if (child.originalMaterial) {
-                child.material = child.originalMaterial;
-                delete child.originalMaterial;
-            }
-            
-            if (cellShadingEnabled) {
-                // Store original material
-                if (!child.originalMaterial) {
-                    child.originalMaterial = child.material;
-                }
-                
-                // Create toon material
-                const toonMaterial = new THREE.MeshToonMaterial({
-                    color: child.originalMaterial.color || 0x808080,
-                    map: child.originalMaterial.map || null,
-                    gradientMap: createToonGradientTexture(shadingLevels)
-                });
-                
-                child.material = toonMaterial;
-            }
+        if (child.isMesh && child.geometry) {
+            meshes.push(child);
         }
     });
     
-    // Apply outline effect if enabled
-    if (outlineEnabled) {
-        model.traverse(child => {
-            if (child.isMesh) {
-                const outlineMaterial = new THREE.MeshBasicMaterial({
-                    color: new THREE.Color(outlineColor),
-                    side: THREE.BackSide
-                });
-                
-                const outlineMesh = new THREE.Mesh(child.geometry, outlineMaterial);
-                outlineMesh.position.copy(child.position);
-                outlineMesh.rotation.copy(child.rotation);
-                outlineMesh.scale.copy(child.scale).multiplyScalar(1 + (outlineThickness / 50));
-                outlineMesh.isOutlineEffect = true;
-                
-                // Get world position for the outline
-                child.updateWorldMatrix(true, false);
-                outlineMesh.matrix.copy(child.matrixWorld);
-                outlineMesh.matrixWorld.copy(child.matrixWorld);
-                
-                scene.add(outlineMesh);
-            }
+    // Create outline effect for each mesh
+    meshes.forEach(mesh => {
+        const outlineMaterial = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(color),
+            side: THREE.BackSide
         });
-    }
+        
+        const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial);
+        outlineMesh.position.copy(mesh.position);
+        outlineMesh.rotation.copy(mesh.rotation);
+        outlineMesh.scale.copy(mesh.scale).multiplyScalar(1 + thickness * 0.05);
+        outlineMesh.isOutlineEffect = true;
+        
+        // Apply the world matrix of the original mesh
+        outlineMesh.matrix.copy(mesh.matrixWorld);
+        outlineMesh.matrixWorld.copy(mesh.matrixWorld);
+        outlineMesh.matrixAutoUpdate = false;
+        
+        scene.add(outlineMesh);
+    });
     
     // Force render update
     if (renderer && scene && camera) {
@@ -313,19 +228,82 @@ function applyStyleSettings() {
     }
 }
 
+function applyCellShadingEffect(model, enabled, levels) {
+    // Update materials for all meshes in the model
+    model.traverse(child => {
+        if (child.isMesh && child.material) {
+            // Store original material if not already stored
+            if (!child.originalMaterial) {
+                if (Array.isArray(child.material)) {
+                    child.originalMaterial = child.material.map(m => m.clone());
+                } else {
+                    child.originalMaterial = child.material.clone();
+                }
+            }
+            
+            if (enabled) {
+                // Apply cell shading material
+                if (Array.isArray(child.material)) {
+                    child.material.forEach((mat, index) => {
+                        applyCellShadingToMaterial(mat, levels);
+                    });
+                } else {
+                    applyCellShadingToMaterial(child.material, levels);
+                }
+            } else {
+                // Restore original material
+                if (child.originalMaterial) {
+                    child.material = Array.isArray(child.originalMaterial) ? 
+                        child.originalMaterial.map(m => m.clone()) : 
+                        child.originalMaterial.clone();
+                }
+            }
+        }
+    });
+    
+    // Force render update
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+function applyCellShadingToMaterial(material, levels) {
+    // Create a toon shader material
+    const newMaterial = new THREE.MeshToonMaterial({
+        color: material.color ? material.color.clone() : new THREE.Color(0x808080),
+        map: material.map,
+        gradientMap: createToonGradientTexture(levels)
+    });
+    
+    // Copy properties from original material
+    if (material.transparent !== undefined) newMaterial.transparent = material.transparent;
+    if (material.opacity !== undefined) newMaterial.opacity = material.opacity;
+    if (material.side !== undefined) newMaterial.side = material.side;
+    
+    // Replace the material properties
+    Object.assign(material, newMaterial);
+}
+
 function createToonGradientTexture(levels) {
-    const data = new Uint8Array(levels * 4);
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 1;
+    
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, 256, 1);
     
     for (let i = 0; i < levels; i++) {
-        const val = Math.round((i / (levels - 1)) * 255);
-        data[i * 4] = val;
-        data[i * 4 + 1] = val;
-        data[i * 4 + 2] = val;
-        data[i * 4 + 3] = 255;
+        const value = Math.floor(255 * (i / (levels - 1)));
+        const position = Math.floor(256 * (i / (levels - 1)));
+        context.fillStyle = `rgb(${value}, ${value}, ${value})`;
+        context.fillRect(position, 0, Math.ceil(256 / levels), 1);
     }
     
-    const texture = new THREE.DataTexture(data, levels, 1, THREE.RGBAFormat);
-    texture.needsUpdate = true;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    
     return texture;
 }
 
@@ -922,8 +900,12 @@ function processLoadedModel(model) {
     centerAndScaleModel(realMeshes);
     
     // Apply style settings if enabled
-    if (outlineEnabled || cellShadingEnabled) {
-        applyStyleSettings();
+    if (outlineEnabled) {
+        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
+    }
+    
+    if (cellShadingEnabled) {
+        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
     }
     
     // Force render update
@@ -1028,8 +1010,8 @@ function centerAndScaleModel(realMeshes) {
         
         // Reset model position
         model.position.set(0, 0, 0);
-        
-        // Add model to group
+
+    // Add model to group
         group.add(model);
         
         // Position model within group to center it
@@ -1168,22 +1150,16 @@ function handleGenerateSprite() {
             }
         });
         
-        generateSpriteSheet(
-            scene, 
-            camera, 
-            model, 
-            resolution, 
-            steps, 
-            initialAngle, 
-            verticalAngle, 
-            cameraDistance, 
-            frameFillPercentage,
-            outlineEnabled,
-            outlineThickness,
-            outlineColor,
-            cellShadingEnabled,
-            shadingLevels
-        )
+        // Get style settings
+        const styleSettings = {
+            outlineEnabled: outlineEnabled,
+            outlineThickness: outlineThickness,
+            outlineColor: outlineColor,
+            cellShadingEnabled: cellShadingEnabled,
+            shadingLevels: shadingLevels
+        };
+        
+        generateSpriteSheet(scene, camera, model, resolution, steps, initialAngle, verticalAngle, cameraDistance, frameFillPercentage, styleSettings)
         .then(result => {
             frames = result.frames;
             outputCanvas.width = result.spriteSheet.width;
