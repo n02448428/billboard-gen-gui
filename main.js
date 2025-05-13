@@ -12,21 +12,12 @@ let verticalAngle = 0;
 let frameFillPercentage = 80; // Default to 80% fill
 let pixelationLevel = 50; // Default pixelation level
 
-// Style settings
-let outlineEnabled = false;
-let outlineThickness = 1.5;
-let outlineColor = "#000000";
-let cellShadingEnabled = false;
-let shadingLevels = 3;
-
 // DOM Elements
 let modelInput, scaleSlider, scaleValue, resolutionSelect, stepsInput;
 let generateBtn, downloadBtn, statusMessage, modelPreviewContainer;
 let spritePreview, outputCanvas, prevFrameBtn, playPauseBtn, nextFrameBtn;
 let cameraDistanceSlider, initialAngleSlider, verticalAngleSlider;
 let frameFillSlider, frameFillValue, pixelationSlider, pixelationValue;
-let outlineEnabledCheckbox, outlineThicknessSlider, outlineThicknessValue, outlineColorPicker;
-let cellShadingEnabledCheckbox, shadingLevelsSlider, shadingLevelsValue;
 let dropZone, themeToggle;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,13 +65,6 @@ function initializeDOMElements() {
     frameFillValue = document.getElementById('frameFillValue');
     pixelationSlider = document.getElementById('pixelation');
     pixelationValue = document.getElementById('pixelationValue');
-    outlineEnabledCheckbox = document.getElementById('outlineEnabled');
-    outlineThicknessSlider = document.getElementById('outlineThickness');
-    outlineThicknessValue = document.getElementById('outlineThicknessValue');
-    outlineColorPicker = document.getElementById('outlineColor');
-    cellShadingEnabledCheckbox = document.getElementById('cellShadingEnabled');
-    shadingLevelsSlider = document.getElementById('shadingLevels');
-    shadingLevelsValue = document.getElementById('shadingLevelsValue');
     dropZone = document.getElementById('dropZone');
     themeToggle = document.getElementById('themeToggle');
 }
@@ -123,188 +107,9 @@ function setupEventListeners() {
         }
     }
     
-    if (outlineEnabledCheckbox) {
-        outlineEnabledCheckbox.addEventListener('change', updateOutlineSettings);
-    }
-    
-    if (outlineThicknessSlider) {
-        outlineThicknessSlider.addEventListener('input', updateOutlineSettings);
-        if (outlineThicknessValue) {
-            outlineThicknessValue.textContent = outlineThicknessSlider.value;
-        }
-    }
-    
-    if (outlineColorPicker) {
-        outlineColorPicker.addEventListener('input', updateOutlineSettings);
-    }
-    
-    if (cellShadingEnabledCheckbox) {
-        cellShadingEnabledCheckbox.addEventListener('change', updateCellShadingSettings);
-    }
-    
-    if (shadingLevelsSlider) {
-        shadingLevelsSlider.addEventListener('input', updateCellShadingSettings);
-        if (shadingLevelsValue) {
-            shadingLevelsValue.textContent = shadingLevelsSlider.value;
-        }
-    }
-    
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-}
-
-function updateOutlineSettings() {
-    outlineEnabled = outlineEnabledCheckbox.checked;
-    outlineThickness = parseFloat(outlineThicknessSlider.value);
-    outlineColor = outlineColorPicker.value;
-    
-    if (outlineThicknessValue) {
-        outlineThicknessValue.textContent = outlineThickness;
-    }
-    
-    // Update the model with new outline settings
-    if (model) {
-        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
-    }
-}
-
-function updateCellShadingSettings() {
-    cellShadingEnabled = cellShadingEnabledCheckbox.checked;
-    shadingLevels = parseInt(shadingLevelsSlider.value);
-    
-    if (shadingLevelsValue) {
-        shadingLevelsValue.textContent = shadingLevels;
-    }
-    
-    // Update the model with new cell shading settings
-    if (model) {
-        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
-    }
-}
-
-function applyOutlineEffect(model, enabled, thickness, color) {
-    // Remove any existing outline effect
-    scene.children.forEach(child => {
-        if (child.isOutlineEffect) {
-            scene.remove(child);
-        }
-    });
-    
-    if (!enabled) return;
-    
-    // Find all meshes in the model
-    const meshes = [];
-    model.traverse(child => {
-        if (child.isMesh && child.geometry) {
-            meshes.push(child);
-        }
-    });
-    
-    // Create outline effect for each mesh
-    meshes.forEach(mesh => {
-        const outlineMaterial = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(color),
-            side: THREE.BackSide
-        });
-        
-        const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial);
-        outlineMesh.position.copy(mesh.position);
-        outlineMesh.rotation.copy(mesh.rotation);
-        outlineMesh.scale.copy(mesh.scale).multiplyScalar(1 + thickness * 0.05);
-        outlineMesh.isOutlineEffect = true;
-        
-        // Apply the world matrix of the original mesh
-        outlineMesh.matrix.copy(mesh.matrixWorld);
-        outlineMesh.matrixWorld.copy(mesh.matrixWorld);
-        outlineMesh.matrixAutoUpdate = false;
-        
-        scene.add(outlineMesh);
-    });
-    
-    // Force render update
-    if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-    }
-}
-
-function applyCellShadingEffect(model, enabled, levels) {
-    // Update materials for all meshes in the model
-    model.traverse(child => {
-        if (child.isMesh && child.material) {
-            // Store original material if not already stored
-            if (!child.originalMaterial) {
-                if (Array.isArray(child.material)) {
-                    child.originalMaterial = child.material.map(m => m.clone());
-                } else {
-                    child.originalMaterial = child.material.clone();
-                }
-            }
-            
-            if (enabled) {
-                // Apply cell shading material
-                if (Array.isArray(child.material)) {
-                    child.material.forEach((mat, index) => {
-                        applyCellShadingToMaterial(mat, levels);
-                    });
-                } else {
-                    applyCellShadingToMaterial(child.material, levels);
-                }
-            } else {
-                // Restore original material
-                if (child.originalMaterial) {
-                    child.material = Array.isArray(child.originalMaterial) ? 
-                        child.originalMaterial.map(m => m.clone()) : 
-                        child.originalMaterial.clone();
-                }
-            }
-        }
-    });
-    
-    // Force render update
-    if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-    }
-}
-
-function applyCellShadingToMaterial(material, levels) {
-    // Create a toon shader material
-    const newMaterial = new THREE.MeshToonMaterial({
-        color: material.color ? material.color.clone() : new THREE.Color(0x808080),
-        map: material.map,
-        gradientMap: createToonGradientTexture(levels)
-    });
-    
-    // Copy properties from original material
-    if (material.transparent !== undefined) newMaterial.transparent = material.transparent;
-    if (material.opacity !== undefined) newMaterial.opacity = material.opacity;
-    if (material.side !== undefined) newMaterial.side = material.side;
-    
-    // Replace the material properties
-    Object.assign(material, newMaterial);
-}
-
-function createToonGradientTexture(levels) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 1;
-    
-    const context = canvas.getContext('2d');
-    context.fillStyle = 'white';
-    context.fillRect(0, 0, 256, 1);
-    
-    for (let i = 0; i < levels; i++) {
-        const value = Math.floor(255 * (i / (levels - 1)));
-        const position = Math.floor(256 * (i / (levels - 1)));
-        context.fillStyle = `rgb(${value}, ${value}, ${value})`;
-        context.fillRect(position, 0, Math.ceil(256 / levels), 1);
-    }
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.NearestFilter;
-    texture.magFilter = THREE.NearestFilter;
-    
-    return texture;
 }
 
 function initializeTheme() {
@@ -458,7 +263,7 @@ function initializeCanvases() {
 // Add a test cube to verify rendering is working
 function addTestCube() {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const material = new THREE.MeshStandardMaterial({ color: 0x808080 }); // Changed from green to gray
     const cube = new THREE.Mesh(geometry, material);
     cube.position.set(0, 0.5, 0);
     scene.add(cube);
@@ -573,7 +378,7 @@ async function handleModelUpload(e) {
         // Remove test cube if it exists
         scene.children.forEach(child => {
             if (child.geometry instanceof THREE.BoxGeometry &&
-                child.material.color.getHex() === 0x00ff00) {
+                child.material.color.getHex() === 0x808080) { // Changed from green to gray
                 scene.remove(child);
             }
         });
@@ -801,7 +606,7 @@ function loadMTLModel(fileURL, resolve, reject) {
     // Create a simple cube as a placeholder
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
+        color: 0x808080, // Changed from red to gray
         wireframe: true
     });
     const mesh = new THREE.Mesh(geometry, material);
@@ -851,7 +656,7 @@ function processLoadedModel(model) {
             // Ensure material is visible
             if (!child.material) {
                 child.material = new THREE.MeshStandardMaterial({
-                    color: 0x808080,
+                    color: 0x808080, // Changed to gray
                     side: THREE.DoubleSide
                 });
             } else if (Array.isArray(child.material)) {
@@ -884,7 +689,7 @@ function processLoadedModel(model) {
         // Create a placeholder mesh to represent the model
         const geometry = new THREE.SphereGeometry(1, 16, 16);
         const material = new THREE.MeshStandardMaterial({
-            color: 0xff0000,
+            color: 0x808080, // Changed from red to gray
             wireframe: true
         });
         const placeholder = new THREE.Mesh(geometry, material);
@@ -898,15 +703,6 @@ function processLoadedModel(model) {
     
     // Center and scale the model
     centerAndScaleModel(realMeshes);
-    
-    // Apply style settings if enabled
-    if (outlineEnabled) {
-        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
-    }
-    
-    if (cellShadingEnabled) {
-        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
-    }
     
     // Force render update
     renderer.render(scene, camera);
@@ -922,7 +718,7 @@ function ensureMaterialIsVisible(material) {
     
     // If material has a map but it's not loaded, create a default color
     if (material.map && !material.map.image) {
-        material.color = new THREE.Color(0x808080);
+        material.color = new THREE.Color(0x808080); // Changed to gray
     }
 }
 
