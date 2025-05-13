@@ -12,12 +12,21 @@ let verticalAngle = 0;
 let frameFillPercentage = 80; // Default to 80% fill
 let pixelationLevel = 50; // Default pixelation level
 
+// Style settings
+let outlineEnabled = false;
+let outlineThickness = 1.5;
+let outlineColor = "#000000";
+let cellShadingEnabled = false;
+let shadingLevels = 3;
+
 // DOM Elements
 let modelInput, scaleSlider, scaleValue, resolutionSelect, stepsInput;
 let generateBtn, downloadBtn, statusMessage, modelPreviewContainer;
 let spritePreview, outputCanvas, prevFrameBtn, playPauseBtn, nextFrameBtn;
 let cameraDistanceSlider, initialAngleSlider, verticalAngleSlider;
 let frameFillSlider, frameFillValue, pixelationSlider, pixelationValue;
+let outlineEnabledCheckbox, outlineThicknessSlider, outlineThicknessValue, outlineColorPicker;
+let cellShadingEnabledCheckbox, shadingLevelsSlider, shadingLevelsValue;
 let dropZone, themeToggle;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,6 +74,13 @@ function initializeDOMElements() {
     frameFillValue = document.getElementById('frameFillValue');
     pixelationSlider = document.getElementById('pixelation');
     pixelationValue = document.getElementById('pixelationValue');
+    outlineEnabledCheckbox = document.getElementById('outlineEnabled');
+    outlineThicknessSlider = document.getElementById('outlineThickness');
+    outlineThicknessValue = document.getElementById('outlineThicknessValue');
+    outlineColorPicker = document.getElementById('outlineColor');
+    cellShadingEnabledCheckbox = document.getElementById('cellShadingEnabled');
+    shadingLevelsSlider = document.getElementById('shadingLevels');
+    shadingLevelsValue = document.getElementById('shadingLevelsValue');
     dropZone = document.getElementById('dropZone');
     themeToggle = document.getElementById('themeToggle');
 }
@@ -107,9 +123,188 @@ function setupEventListeners() {
         }
     }
     
+    if (outlineEnabledCheckbox) {
+        outlineEnabledCheckbox.addEventListener('change', updateOutlineSettings);
+    }
+    
+    if (outlineThicknessSlider) {
+        outlineThicknessSlider.addEventListener('input', updateOutlineSettings);
+        if (outlineThicknessValue) {
+            outlineThicknessValue.textContent = outlineThicknessSlider.value;
+        }
+    }
+    
+    if (outlineColorPicker) {
+        outlineColorPicker.addEventListener('input', updateOutlineSettings);
+    }
+    
+    if (cellShadingEnabledCheckbox) {
+        cellShadingEnabledCheckbox.addEventListener('change', updateCellShadingSettings);
+    }
+    
+    if (shadingLevelsSlider) {
+        shadingLevelsSlider.addEventListener('input', updateCellShadingSettings);
+        if (shadingLevelsValue) {
+            shadingLevelsValue.textContent = shadingLevelsSlider.value;
+        }
+    }
+    
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+}
+
+function updateOutlineSettings() {
+    outlineEnabled = outlineEnabledCheckbox.checked;
+    outlineThickness = parseFloat(outlineThicknessSlider.value);
+    outlineColor = outlineColorPicker.value;
+    
+    if (outlineThicknessValue) {
+        outlineThicknessValue.textContent = outlineThickness;
+    }
+    
+    // Update the model with new outline settings
+    if (model) {
+        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
+    }
+}
+
+function updateCellShadingSettings() {
+    cellShadingEnabled = cellShadingEnabledCheckbox.checked;
+    shadingLevels = parseInt(shadingLevelsSlider.value);
+    
+    if (shadingLevelsValue) {
+        shadingLevelsValue.textContent = shadingLevels;
+    }
+    
+    // Update the model with new cell shading settings
+    if (model) {
+        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
+    }
+}
+
+function applyOutlineEffect(model, enabled, thickness, color) {
+    // Remove any existing outline effect
+    scene.children.forEach(child => {
+        if (child.isOutlineEffect) {
+            scene.remove(child);
+        }
+    });
+    
+    if (!enabled) return;
+    
+    // Find all meshes in the model
+    const meshes = [];
+    model.traverse(child => {
+        if (child.isMesh && child.geometry) {
+            meshes.push(child);
+        }
+    });
+    
+    // Create outline effect for each mesh
+    meshes.forEach(mesh => {
+        const outlineMaterial = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(color),
+            side: THREE.BackSide
+        });
+        
+        const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial);
+        outlineMesh.position.copy(mesh.position);
+        outlineMesh.rotation.copy(mesh.rotation);
+        outlineMesh.scale.copy(mesh.scale).multiplyScalar(1 + thickness * 0.05);
+        outlineMesh.isOutlineEffect = true;
+        
+        // Apply the world matrix of the original mesh
+        outlineMesh.matrix.copy(mesh.matrixWorld);
+        outlineMesh.matrixWorld.copy(mesh.matrixWorld);
+        outlineMesh.matrixAutoUpdate = false;
+        
+        scene.add(outlineMesh);
+    });
+    
+    // Force render update
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+function applyCellShadingEffect(model, enabled, levels) {
+    // Update materials for all meshes in the model
+    model.traverse(child => {
+        if (child.isMesh && child.material) {
+            // Store original material if not already stored
+            if (!child.originalMaterial) {
+                if (Array.isArray(child.material)) {
+                    child.originalMaterial = child.material.map(m => m.clone());
+                } else {
+                    child.originalMaterial = child.material.clone();
+                }
+            }
+            
+            if (enabled) {
+                // Apply cell shading material
+                if (Array.isArray(child.material)) {
+                    child.material.forEach((mat, index) => {
+                        applyCellShadingToMaterial(mat, levels);
+                    });
+                } else {
+                    applyCellShadingToMaterial(child.material, levels);
+                }
+            } else {
+                // Restore original material
+                if (child.originalMaterial) {
+                    child.material = Array.isArray(child.originalMaterial) ? 
+                        child.originalMaterial.map(m => m.clone()) : 
+                        child.originalMaterial.clone();
+                }
+            }
+        }
+    });
+    
+    // Force render update
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+function applyCellShadingToMaterial(material, levels) {
+    // Create a toon shader material
+    const newMaterial = new THREE.MeshToonMaterial({
+        color: material.color ? material.color.clone() : new THREE.Color(0x808080),
+        map: material.map,
+        gradientMap: createToonGradientTexture(levels)
+    });
+    
+    // Copy properties from original material
+    if (material.transparent !== undefined) newMaterial.transparent = material.transparent;
+    if (material.opacity !== undefined) newMaterial.opacity = material.opacity;
+    if (material.side !== undefined) newMaterial.side = material.side;
+    
+    // Replace the material properties
+    Object.assign(material, newMaterial);
+}
+
+function createToonGradientTexture(levels) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 1;
+    
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, 256, 1);
+    
+    for (let i = 0; i < levels; i++) {
+        const value = Math.floor(255 * (i / (levels - 1)));
+        const position = Math.floor(256 * (i / (levels - 1)));
+        context.fillStyle = `rgb(${value}, ${value}, ${value})`;
+        context.fillRect(position, 0, Math.ceil(256 / levels), 1);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    
+    return texture;
 }
 
 function initializeTheme() {
@@ -263,7 +458,7 @@ function initializeCanvases() {
 // Add a test cube to verify rendering is working
 function addTestCube() {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x808080 }); // Changed from green to gray
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
     const cube = new THREE.Mesh(geometry, material);
     cube.position.set(0, 0.5, 0);
     scene.add(cube);
@@ -378,7 +573,7 @@ async function handleModelUpload(e) {
         // Remove test cube if it exists
         scene.children.forEach(child => {
             if (child.geometry instanceof THREE.BoxGeometry &&
-                child.material.color.getHex() === 0x808080) { // Changed from green to gray
+                child.material.color.getHex() === 0x00ff00) {
                 scene.remove(child);
             }
         });
@@ -428,13 +623,13 @@ function loadModel(file) {
 
 function loadGLTFModel(fileURL, resolve, reject) {
     console.log("Loading GLTF/GLB model from:", fileURL);
-    
+
     // Make sure GLTFLoader is available
     if (typeof THREE.GLTFLoader === 'undefined') {
         reject(new Error('GLTFLoader is not available. Please refresh the page.'));
         return;
     }
-    
+
     const loader = new THREE.GLTFLoader();
     loader.load(
         fileURL,
@@ -442,19 +637,19 @@ function loadGLTFModel(fileURL, resolve, reject) {
             console.log("GLTF loaded successfully:", gltf);
             // The model is in gltf.scene
             model = gltf.scene;
-            
+
             if (!model) {
                 console.error("Model is null or undefined after loading");
                 reject(new Error('Model failed to load correctly'));
                 return;
             }
-            
+
             // Update debug output
             const debugOutput = document.getElementById('debugOutput');
             debugOutput.innerHTML = 'Model loaded successfully\n';
-            
+
             // Process the model
-            processLoadedModel(model);
+            processLoadedModel(model); // Call processLoadedModel *after* successful load
             resolve(model);
         },
         (xhr) => {
@@ -470,32 +665,32 @@ function loadGLTFModel(fileURL, resolve, reject) {
 
 function loadOBJModel(fileURL, resolve, reject) {
     console.log("Loading OBJ model from:", fileURL);
-    
+
     // Make sure OBJLoader is available
     if (typeof THREE.OBJLoader === 'undefined') {
         reject(new Error('OBJLoader is not available. Please refresh the page.'));
         return;
     }
-    
+
     const loader = new THREE.OBJLoader();
     loader.load(
         fileURL,
         (obj) => {
             console.log("OBJ loaded successfully:", obj);
             model = obj;
-            
+
             if (!model) {
                 console.error("Model is null or undefined after loading");
                 reject(new Error('Model failed to load correctly'));
                 return;
             }
-            
+
             // Update debug output
             const debugOutput = document.getElementById('debugOutput');
             debugOutput.innerHTML = 'Model loaded successfully\n';
-            
+
             // Process the model
-            processLoadedModel(model);
+            processLoadedModel(model);  // Call processLoadedModel *after* successful load
             resolve(model);
         },
         (xhr) => {
@@ -511,32 +706,32 @@ function loadOBJModel(fileURL, resolve, reject) {
 
 function loadFBXModel(fileURL, resolve, reject) {
     console.log("Loading FBX model from:", fileURL);
-    
+
     // Make sure FBXLoader is available
     if (typeof THREE.FBXLoader === 'undefined') {
         reject(new Error('FBXLoader is not available. Please refresh the page.'));
         return;
     }
-    
+
     const loader = new THREE.FBXLoader();
     loader.load(
         fileURL,
         (fbx) => {
             console.log("FBX loaded successfully:", fbx);
             model = fbx;
-            
+
             if (!model) {
                 console.error("Model is null or undefined after loading");
                 reject(new Error('Model failed to load correctly'));
                 return;
             }
-            
+
             // Update debug output
             const debugOutput = document.getElementById('debugOutput');
             debugOutput.innerHTML = 'FBX model loaded successfully\n';
-            
+
             // Process the model
-            processLoadedModel(model);
+            processLoadedModel(model);  // Call processLoadedModel *after* successful load
             resolve(model);
         },
         (xhr) => {
@@ -552,13 +747,13 @@ function loadFBXModel(fileURL, resolve, reject) {
 
 function loadColladaModel(fileURL, resolve, reject) {
     console.log("Loading Collada model from:", fileURL);
-    
+
     // Make sure ColladaLoader is available
     if (typeof THREE.ColladaLoader === 'undefined') {
         reject(new Error('ColladaLoader is not available. Please refresh the page.'));
         return;
     }
-    
+
     const loader = new THREE.ColladaLoader();
     loader.load(
         fileURL,
@@ -566,19 +761,19 @@ function loadColladaModel(fileURL, resolve, reject) {
             console.log("Collada loaded successfully:", collada);
             // The model is in collada.scene
             model = collada.scene;
-            
+
             if (!model) {
                 console.error("Model is null or undefined after loading");
                 reject(new Error('Model failed to load correctly'));
                 return;
             }
-            
+
             // Update debug output
             const debugOutput = document.getElementById('debugOutput');
             debugOutput.innerHTML = 'Collada model loaded successfully\n';
-            
+
             // Process the model
-            processLoadedModel(model);
+            processLoadedModel(model);  // Call processLoadedModel *after* successful load
             resolve(model);
         },
         (xhr) => {
@@ -594,35 +789,35 @@ function loadColladaModel(fileURL, resolve, reject) {
 
 function loadMTLModel(fileURL, resolve, reject) {
     console.log("Loading MTL file from:", fileURL);
-    
+
     // Make sure MTLLoader is available
     if (typeof THREE.MTLLoader === 'undefined') {
         reject(new Error('MTLLoader is not available. Please refresh the page.'));
         return;
     }
-    
+
     // MTL files are material definitions, not models
     // We'll create a placeholder object to represent the MTL file
     // Create a simple cube as a placeholder
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshStandardMaterial({
-        color: 0x808080, // Changed from red to gray
+        color: 0xff0000,
         wireframe: true
     });
     const mesh = new THREE.Mesh(geometry, material);
-    
+
     // Create a group to hold the mesh
     model = new THREE.Group();
     model.add(mesh);
-    
+
     // Update debug output
     const debugOutput = document.getElementById('debugOutput');
     debugOutput.innerHTML = 'MTL file detected. Created placeholder object.\n';
     debugOutput.innerHTML += 'Note: MTL files are material definitions typically used with OBJ files.\n';
     debugOutput.innerHTML += 'For best results, load the corresponding OBJ file instead.\n';
-    
+
     // Process the model
-    processLoadedModel(model);
+    processLoadedModel(model);  // Call processLoadedModel *after* successful load.  This will set the color.
     resolve(model);
 }
 
@@ -631,96 +826,107 @@ function processLoadedModel(model) {
     const debugOutput = document.getElementById('debugOutput');
     let geometryCount = 0;
     let totalVertices = 0;
-    
+
     debugOutput.innerHTML = 'Processing model...\n';
-    
+
     // Find all meshes in the model
     const realMeshes = [];
-    
-    // First pass - count geometries and fix materials
+
     model.traverse((child) => {
         console.log("Traversing child:", child);
-        
+
         if (child.isMesh) {
             geometryCount++;
-            
+
             if (child.geometry && child.geometry.attributes && child.geometry.attributes.position) {
                 const vertexCount = child.geometry.attributes.position.count;
                 totalVertices += vertexCount;
-                
+
                 if (vertexCount > 0) {
                     realMeshes.push(child);
                 }
             }
-            
-            // Ensure material is visible
+
+            // Ensure material is present and has correct properties
             if (!child.material) {
-                child.material = new THREE.MeshStandardMaterial({
-                    color: 0x808080, // Changed to gray
-                    side: THREE.DoubleSide
-                });
+                child.material = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide }); //set color here
             } else if (Array.isArray(child.material)) {
                 // Handle multi-material objects
                 child.material.forEach(mat => {
-                    ensureMaterialIsVisible(mat);
+                    applyStandardMaterialProperties(mat); // Use the new function
                 });
             } else {
-                ensureMaterialIsVisible(child.material);
+                applyStandardMaterialProperties(child.material); // Use the new function
             }
-            
+
             child.visible = true;
             child.castShadow = true;
             child.receiveShadow = true;
-            
+
             debugOutput.innerHTML += `Mesh: ${child.name || 'unnamed'}\n`;
             if (child.geometry && child.geometry.attributes && child.geometry.attributes.position) {
                 debugOutput.innerHTML += `Vertices: ${child.geometry.attributes.position.count}\n`;
             }
         }
     });
-    
+
     debugOutput.innerHTML += `\nTotal geometries: ${geometryCount}\n`;
     debugOutput.innerHTML += `Total vertices: ${totalVertices}\n`;
     debugOutput.innerHTML += `Real meshes with vertices: ${realMeshes.length}\n`;
-    
+
     if (realMeshes.length === 0) {
         debugOutput.innerHTML += "\nWARNING: No valid meshes found in the model!\n";
-        
+
         // Create a placeholder mesh to represent the model
         const geometry = new THREE.SphereGeometry(1, 16, 16);
         const material = new THREE.MeshStandardMaterial({
-            color: 0x808080, // Changed from red to gray
+            color: 0xff0000,
             wireframe: true
         });
         const placeholder = new THREE.Mesh(geometry, material);
         model.add(placeholder);
-        
+
         debugOutput.innerHTML += "Added placeholder sphere to represent model\n";
     }
-    
+
     // Add to scene first so we can calculate bounding box
     scene.add(model);
-    
+
     // Center and scale the model
     centerAndScaleModel(realMeshes);
-    
+
+    // Apply style settings if enabled.  These should apply *after* the model is loaded and centered.
+    if (outlineEnabled) {
+        applyOutlineEffect(model, outlineEnabled, outlineThickness, outlineColor);
+    }
+
+    if (cellShadingEnabled) {
+        applyCellShadingEffect(model, cellShadingEnabled, shadingLevels);
+    }
+
     // Force render update
     renderer.render(scene, camera);
 }
 
 function ensureMaterialIsVisible(material) {
     if (!material) return;
-    
+
     material.side = THREE.DoubleSide;
     material.transparent = false;
     material.opacity = 1.0;
+    material.color = material.color || new THREE.Color(0xffffff); // Ensure color is set
     material.needsUpdate = true;
-    
-    // If material has a map but it's not loaded, create a default color
-    if (material.map && !material.map.image) {
-        material.color = new THREE.Color(0x808080); // Changed to gray
-    }
 }
+
+// New function to apply standard material properties
+function applyStandardMaterialProperties(material) {
+    material.side = THREE.DoubleSide;
+    material.transparent = false;
+    material.opacity = 1.0;
+    material.color = material.color || new THREE.Color(0xffffff); // Ensure color is set
+    material.needsUpdate = true;
+}
+
 
 // Improved centerAndScaleModel function to focus on actual geometry
 function centerAndScaleModel(realMeshes) {
