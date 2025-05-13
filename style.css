@@ -8,6 +8,8 @@
   --button-hover: #45a049;
   --error-bg: #ffebee;
   --error-color: #d32f2f;
+  --tooltip-bg: rgba(0, 0, 0, 0.8);
+  --tooltip-color: white;
 }
 
 body.dark-mode {
@@ -20,6 +22,8 @@ body.dark-mode {
   --button-hover: #2e7d32;
   --error-bg: #3e2723;
   --error-color: #ef9a9a;
+  --tooltip-bg: rgba(255, 255, 255, 0.9);
+  --tooltip-color: #121212;
 }
 
 body {
@@ -56,7 +60,7 @@ h3 {
   margin-bottom: 10px;
 }
 
-.controls, .camera-controls {
+.controls, .camera-controls, .style-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
@@ -67,7 +71,7 @@ h3 {
   border: 1px solid var(--border-color);
 }
 
-.camera-controls h3 {
+.camera-controls h3, .style-controls h3 {
   width: 100%;
   margin-top: 0;
   margin-bottom: 10px;
@@ -76,6 +80,44 @@ h3 {
 .control-group {
   flex: 1;
   min-width: 200px;
+  position: relative;
+}
+
+.control-group:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip {
+  visibility: hidden;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--tooltip-bg);
+  color: var(--tooltip-color);
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  width: max-content;
+  max-width: 250px;
+  font-size: 14px;
+  pointer-events: none;
+  margin-bottom: 5px;
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--tooltip-bg) transparent transparent transparent;
 }
 
 label {
@@ -91,6 +133,11 @@ input, select, button {
   border-radius: 4px;
   background-color: var(--container-bg);
   color: var(--text-color);
+}
+
+input[type="color"] {
+  height: 40px;
+  padding: 2px;
 }
 
 .button-group {
@@ -120,6 +167,52 @@ button:hover:not(:disabled) {
 button:disabled {
   background-color: #cccc;
   cursor: not-allowed;
+}
+
+/* Toggle switch styles */
+.toggle-container {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-container input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-label {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-label:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-label {
+  background-color: var(--button-color);
+}
+
+input:checked + .toggle-label:before {
+  transform: translateX(26px);
 }
 
 .status-message {
@@ -216,11 +309,58 @@ button:disabled {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .controls, .camera-controls {
-    flex-direction: column;
+  body {
+    padding: 10px;
   }
+  
+  .container {
+    padding: 10px;
+  }
+  
+  .controls, .camera-controls, .style-controls {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+  
   .preview-container {
     flex-direction: column;
+  }
+  
+  .control-group {
+    min-width: 100%;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+  
+  .tooltip {
+    position: static;
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    background-color: transparent;
+    color: var(--text-color);
+    padding: 5px 0;
+    font-style: italic;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  
+  .tooltip::after {
+    display: none;
+  }
+  
+  #spritePreview {
+    width: 100%;
+    height: auto;
+    max-width: 300px;
+  }
+  
+  .theme-toggle {
+    top: 10px;
+    right: 10px;
   }
 }
 
@@ -259,6 +399,7 @@ button:disabled {
   background-color: var(--control-bg);
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .drop-zone.highlight {
