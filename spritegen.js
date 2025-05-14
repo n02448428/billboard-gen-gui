@@ -37,30 +37,30 @@ function generateSpriteSheet(scene, mainCamera, model, resolution, steps, initia
             // Add lights to sprite scene - brighter for FBX
             if (fileExtension === 'fbx') {
                 // Extra bright lighting for FBX models
-                const ambientLight = new THREE.AmbientLight(0xffff, 1.5);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
                 spriteScene.add(ambientLight);
 
-                const directionalLight1 = new THREE.DirectionalLight(0xffff, 1.5);
+                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
                 directionalLight1.position.set(1, 1, 1);
                 spriteScene.add(directionalLight1);
 
-                const directionalLight2 = new THREE.DirectionalLight(0xffff, 1.2);
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2);
                 directionalLight2.position.set(-1, 0.5, -1);
                 spriteScene.add(directionalLight2);
 
-                const directionalLight3 = new THREE.DirectionalLight(0xffff, 1.0);
+                const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.0);
                 directionalLight3.position.set(0, -1, 0);
                 spriteScene.add(directionalLight3);
             } else {
                 // Standard lighting for other models
-                const ambientLight = new THREE.AmbientLight(0xffff, 1.0);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
                 spriteScene.add(ambientLight);
 
-                const directionalLight1 = new THREE.DirectionalLight(0xffff, 1.0);
+                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
                 directionalLight1.position.set(1, 1, 1);
                 spriteScene.add(directionalLight1);
 
-                const directionalLight2 = new THREE.DirectionalLight(0xffff, 0.8);
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight2.position.set(-1, 0.5, -1);
                 spriteScene.add(directionalLight2);
             }

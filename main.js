@@ -478,14 +478,14 @@ function initPreview() {
             new THREE.Color(0x121212) : new THREE.Color(0xf0f0f0);
         
         // Add lights with correct color values
-        const ambientLight = new THREE.AmbientLight(0xffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
         
-        const directionalLight1 = new THREE.DirectionalLight(0xffff, 0.8);
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight1.position.set(1, 1, 1);
         scene.add(directionalLight1);
         
-        const directionalLight2 = new THREE.DirectionalLight(0xffff, 0.5);
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
         directionalLight2.position.set(-1, 0.5, -1);
         scene.add(directionalLight2);
         
@@ -888,7 +888,7 @@ function processLoadedModel(model) {
 
         debugOutput.innerHTML += "Added placeholder sphere to represent model\n";
     }
-    
+
 model.traverse(child => {
     if (child.isMesh) {
         if (Array.isArray(child.material)) {
