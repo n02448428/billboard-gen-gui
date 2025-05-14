@@ -888,6 +888,24 @@ function processLoadedModel(model) {
 
         debugOutput.innerHTML += "Added placeholder sphere to represent model\n";
     }
+    
+model.traverse(child => {
+    if (child.isMesh) {
+        if (Array.isArray(child.material)) {
+            child.material.forEach((mat, index) => {
+                console.log(`Material ${index}:`, mat);
+                if (mat.color) {
+                    console.log(`Material ${index} Color:`, mat.color);
+                }
+            });
+        } else {
+            console.log("Material:", child.material);
+              if (child.material.color) {
+                    console.log("Material Color:", child.material.color);
+              }
+        }
+    }
+});
 
     // Add to scene first so we can calculate bounding box
     scene.add(model);
